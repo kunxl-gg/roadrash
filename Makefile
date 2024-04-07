@@ -1,4 +1,3 @@
-# Define variables
 APP_NAME = build
 BUILD_DIR = ./bin
 C_FILES = ./src/*.cpp
