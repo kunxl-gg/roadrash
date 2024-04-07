@@ -1,16 +1,11 @@
-#include <iostream>
-
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "utils/shader.hpp"
-#include "utils/model.hpp"
-
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include <utils/shader.hpp>
+#include <utils/model.hpp>
 
 void framebuffer_size_callback(GLFWwindow* window, int widht, int height) {
     glViewport(0, 0, widht, height);
