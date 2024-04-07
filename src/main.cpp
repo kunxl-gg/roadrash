@@ -1,12 +1,30 @@
+#include <filesystem>
+#include <iostream>
+namespace fs = std::filesystem;
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+
+#include <utils/shader.hpp>
+#include <utils/model.hpp>
+#include <utils/camera.hpp>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <utils/shader.hpp>
-#include <utils/model.hpp>
+// settings
+const unsigned int SCR_WIDTH = 800;
+const unsigned int SCR_HEIGHT = 600;
 
+// camera
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+float lastX = SCR_WIDTH / 2.0f;
+float lastY = SCR_HEIGHT / 2.0f;
+bool firstMouse = true;
+
+// timing
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
 void framebuffer_size_callback(GLFWwindow* window, int widht, int height) {
     glViewport(0, 0, widht, height);
 }
@@ -16,45 +34,7 @@ void processInput(GLFWwindow *window) {
         glfwSetWindowShouldClose(window, true);
     }
 }
-int loadTexture() {
-    unsigned int texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
 
-    // Set the texture wrapping parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
-    // Set the texture filtering parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    // Load texture image
-    int width, height, nrChannels;
-    unsigned char* data = stbi_load("/Users/kunaltiwari/roadrash/src/assets/track.jpeg", &width, &height, &nrChannels, 0);
-    if (data) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    } else {
-        std::cout << "Failed to load texture" << std::endl;
-    }
-    stbi_image_free(data);
-
-    return texture;
-}
-// Track vertices and texture coordinates
-float vertices[] = {
-    // positions      // texture coords
-    -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-     1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-     1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-    -1.0f,  1.0f, 0.0f, 0.0f, 1.0f
-};
-
-unsigned int indices[] = {
-    0, 1, 2, // first triangle
-    0, 2, 3  // second triangle
-};
 
 int main() {
     // Initialise GLFW
@@ -83,38 +63,17 @@ int main() {
     glViewport(0, 0, 800, 600); // We are actually defining default viewport
 
     // Accont for keyboard input
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); 
 
-    Shader ourShader("/Users/kunaltiwari/roadrash/src/shaders/vertex.glsl", "/Users/kunaltiwari/roadrash/src/shaders/fragment.glsl");
+    // creating shaders
+    std::string vertexShaderPath = fs::absolute("src/shaders/vertex.glsl");
+    std::string fragmentShaderPath = fs::absolute("src/shaders/fragment.glsl");
+    Shader ourShader(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
 
-    // Loading our ourModel
-    char modelPath[] = "/Users/kunaltiwari/roadrash/src/assets/models/backpack.obj";
-
-    Model ourModel = Model(modelPath);
-
-    // Vertex Buffer Object (VBO) and Vertex Array Object (VAO)
-    unsigned int VBO, VAO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-
-    // Bind VAO first, then bind and set VBO and EBO data
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    // Set vertex attribute pointers
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    // Load and create texture
-    unsigned int texture1 = loadTexture();
+    // Creating out models
+    std::string modelPath = fs::absolute("resources/models/backpack.obj");
+    std::cout << modelPath << std::endl;
+    Model ourModel(modelPath);
 
     while(!glfwWindowShouldClose(window)) {
         // clear the colorbuffer
@@ -124,10 +83,23 @@ int main() {
         // Handling Keyboard input
         processInput(window);
 
-        ourModel.Draw(ourShader);
-        std::cout << "Drawing model" << std::endl;
-
         // Rendering commands here
+        ourShader.use();
+
+        // view/projection transformations
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 view = camera.GetViewMatrix();
+        ourShader.setMat4("projection", projection);
+        ourShader.setMat4("view", view);
+
+        // render the loaded model
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
+        ourShader.setMat4("model", model);
+        ourModel.Draw(ourShader);
+
+        // Swap the screen buffers
         glfwSwapBuffers(window);
         glfwPollEvents();
     }

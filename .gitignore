@@ -3,4 +3,5 @@ bin/
 compile_flags.txt
 includes/
 !includes/utils/
+.idea/
 
