@@ -10,10 +10,9 @@
 #include "utils/model.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include <stb_image.h>
 
-
-void frambuffer_size_callback(GLFWwindow* window, int widht, int height) {
+void framebuffer_size_callback(GLFWwindow* window, int widht, int height) {
     glViewport(0, 0, widht, height);
 }
 
@@ -26,7 +25,7 @@ int loadTexture() {
     unsigned int texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
-   
+
     // Set the texture wrapping parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
@@ -70,7 +69,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 
-    // Creata a window object in using GLFW
+    // Create a window object in using GLFW
     GLFWwindow* window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
     if(!window) {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -79,7 +78,7 @@ int main() {
    }
     glfwMakeContextCurrent(window);
 
-    // Load GLAD so it configures OpenGL 
+    // Load GLAD so it configures OpenGL
     if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
@@ -89,12 +88,14 @@ int main() {
     glViewport(0, 0, 800, 600); // We are actually defining default viewport
 
     // Accont for keyboard input
-    glfwSetFramebufferSizeCallback(window, frambuffer_size_callback);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     Shader ourShader("/Users/kunaltiwari/roadrash/src/shaders/vertex.glsl", "/Users/kunaltiwari/roadrash/src/shaders/fragment.glsl");
 
-    // Loading our model
-    Model ourModel = Model("/Users/kunaltiwari/roadrash/src/assets/models/backpack.obj");
+    // Loading our ourModel
+    char modelPath[] = "/Users/kunaltiwari/roadrash/src/assets/models/backpack.obj";
+
+    Model ourModel = Model(modelPath);
 
     // Vertex Buffer Object (VBO) and Vertex Array Object (VAO)
     unsigned int VBO, VAO, EBO;
@@ -122,13 +123,14 @@ int main() {
 
     while(!glfwWindowShouldClose(window)) {
         // clear the colorbuffer
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Handling Keyboard input
         processInput(window);
 
-        ourModel.Draw();
+        ourModel.Draw(ourShader);
+        std::cout << "Drawing model" << std::endl;
 
         // Rendering commands here
         glfwSwapBuffers(window);
